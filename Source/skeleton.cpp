@@ -10,18 +10,18 @@ using glm::vec3;
 using glm::mat3;
 using glm::vec4;
 using glm::mat4;
+using glm::ivec2;
 
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
 
-vec4 C( 0, 0, -3.00,1 );
+vec4 camera( 0, 0, -3.00, 1 );
 int focal = SCREEN_WIDTH;
 vector<Triangle> triangles;
 
-float theta = 0;
-float yaw = 0;
+vec3 theta( 0.0, 0.0, 0.0 );
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -29,7 +29,7 @@ float yaw = 0;
 void Update();
 void Draw(screen* screen);
 void VertexShader( const vec4& v, glm::ivec2& p );
-void TransformationMatrix(glm::mat4x4 M);
+void TransformationMatrix(glm::mat4& m);
 void Rotate();
 
 int main( int argc, char* argv[] )
@@ -45,7 +45,7 @@ int main( int argc, char* argv[] )
       SDL_Renderframe(screen);
     }
 
-  SDL_SaveImage( screen, "screenshot.bmp" );
+  SDL_SaveImage( screen, "screenshot.png" );
 
   KillSDL(screen);
   return 0;
@@ -54,7 +54,7 @@ int main( int argc, char* argv[] )
 /*Place your drawing here*/
 void Draw(screen* screen)
 {
-  glm::mat4x4 M;  TransformationMatrix(M);
+  glm::mat4 matrix;  TransformationMatrix(matrix);
 
   for( uint32_t i=0; i<triangles.size(); ++i )
     {
@@ -64,12 +64,18 @@ void Draw(screen* screen)
       vertices[2] = triangles[i].v2;
       for(int v=0; v<3; ++v)
         {
-          vec4 vertex = M * vertices[v];
+          vec4 vertex = matrix * vertices[v];
 
           glm::ivec2 projPos;
+
           VertexShader( vertex, projPos );
-          vec3 color(1,1,1);
-          PutPixelSDL( screen, projPos.x, projPos.y, color );
+
+          vec3 colour(1,1,1);
+
+          int x = projPos.x; int y = projPos.y;
+          if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
+            PutPixelSDL( screen, projPos.x, projPos.y, colour );
+          }
         }
       }
 }
@@ -88,15 +94,31 @@ void Update()
 }
 
 void VertexShader( const vec4& v, glm::ivec2& p ){
-  int x = round(focal * ( v.x / (float) v.z ) + ( SCREEN_WIDTH / (float) 2 ));
-  int y = round(focal * ( v.y / (float) v.z ) + ( SCREEN_HEIGHT / (float) 2 ));
+  int x = (int) ( focal * ( v.x / (float) v.z ) ) + ( SCREEN_WIDTH / (float) 2 );
+  int y = (int) ( focal * ( v.y / (float) v.z ) ) + ( SCREEN_HEIGHT / (float) 2 );
 
   p.x = x;  p.y = y;
 }
 
-void TransformationMatrix(glm::mat4x4 M){
-	  M[0][0] = cos( yaw );   M[1][0] = sin( yaw ) * sin( theta );  M[2][0] = sin( yaw ) * cos( theta );  M[3][0] = -C.x;
-	  M[0][1] = 0;            M[1][1] = cos( theta );               M[2][1] = -sin( theta );              M[3][1] = -C.y;
-	  M[0][2] = -sin( yaw );  M[1][2] = cos( yaw ) * sin( theta );  M[2][2] = cos( yaw ) * cos( theta );  M[3][2] = -C.z;
-    M[0][3] = 0;            M[1][3] = 0;                          M[2][3] = 0;                          M[3][3] = 1;
-	}
+void TransformationMatrix(glm::mat4& M){
+	  M[0][0] = cos(theta.y) * cos(theta.z);
+    M[0][1] = cos(theta.y) * sin(theta.z);
+    M[0][2] = -sin(theta.y);
+    M[0][3] = 0;
+
+    M[1][0] = (-cos(theta.x)*sin(theta.z)) + (sin(theta.x)*sin(theta.y)*cos(theta.z));
+    M[1][1] = (cos(theta.x)*cos(theta.z)) + (sin(theta.x)*sin(theta.y)*sin(theta.z));
+    M[1][2] = sin(theta.x)*cos(theta.y);
+    M[1][3] = 0;
+
+    M[2][0] = (sin(theta.x)*sin(theta.z)) + (cos(theta.x)*sin(theta.y)*cos(theta.z));
+    M[2][1] = (-sin(theta.x)*cos(theta.z)) +(cos(theta.x)*sin(theta.y)*sin(theta.z));
+    M[2][2] = cos(theta.x)*cos(theta.y);
+    M[2][3] = 0;
+
+    M[3][0] = -camera.x;
+    M[3][1] = -camera.y;
+    M[3][2] = -camera.z;
+    M[3][3] = 1;
+
+  }
