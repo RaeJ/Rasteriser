@@ -67,7 +67,7 @@ void Draw(screen* screen)
       vertices[1] = triangles[i].v1;
       vertices[2] = triangles[i].v2;
       vec3 colour(1,1,1);
-      
+
       for(int v=0; v<3; ++v)
         {
           vec4 vertex = matrix * vertices[v];
@@ -106,17 +106,6 @@ void VertexShader( const vec4& v, glm::ivec2& p ){
   int y = (int) ( focal * ( v.y / (float) v.z ) ) + ( SCREEN_HEIGHT / (float) 2 );
 
   p.x = x;  p.y = y;
-}
-
-void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result ){
-  int N = result.size();
-  vec2 step = vec2(b-a) / float(max(N-1,1));
-  vec2 current( a );
-  for( int i=0; i<N; ++i )
-  {
-    result[i] = current;
-    current += step;
-  }
 }
 
 void TransformationMatrix(glm::mat4& M){
