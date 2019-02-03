@@ -18,6 +18,7 @@ using glm::ivec2;
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
+#define PI 3.14159265
 
 vec4 camera( 0, 0, -3.00, 1 );
 int focal = SCREEN_WIDTH;
@@ -30,9 +31,11 @@ vec3 theta( 0.0, 0.0, 0.0 );
 
 void Update();
 void Draw(screen* screen);
-void VertexShader( const vec4& v, glm::ivec2& p );
+void VertexShader( const vec4& v, ivec2& p );
+void DrawPolygonEdges( screen* screen, const vector<vec4>& vertices );
 void TransformationMatrix(glm::mat4& m);
 void Rotate();
+void UserInput();
 
 int main( int argc, char* argv[] )
 {
@@ -56,36 +59,19 @@ int main( int argc, char* argv[] )
 /*Place your drawing here*/
 void Draw(screen* screen)
 {
-  glm::mat4 matrix;  TransformationMatrix(matrix);
+  memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
+
+  mat4 matrix;  TransformationMatrix(matrix);
 
   for( uint32_t i=0; i<triangles.size(); ++i )
     {
-      vector<ivec2> positions(3);
-
       vector<vec4> vertices(3);
-      vertices[0] = triangles[i].v0;
-      vertices[1] = triangles[i].v1;
-      vertices[2] = triangles[i].v2;
-      vec3 colour(1,1,1);
+      vertices[0] = matrix * triangles[i].v0;
+      vertices[1] = matrix * triangles[i].v1;
+      vertices[2] = matrix * triangles[i].v2;
 
-      for(int v=0; v<3; ++v)
-        {
-          vec4 vertex = matrix * vertices[v];
-
-          ivec2 projected;
-
-          VertexShader( vertex, projected );
-
-          int x = projected.x; int y = projected.y;
-          if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
-            PutPixelSDL( screen, projected.x, projected.y, colour );
-          }
-          positions[v] = projected;
-        }
-        DrawLineBRS( screen, positions[0], positions[1], colour );
-        DrawLineBRS( screen, positions[1], positions[2], colour );
-        DrawLineBRS( screen, positions[2], positions[0], colour );
-      }
+      DrawPolygonEdges( screen, vertices );
+    }
 }
 
 /*Place updates of parameters here*/
@@ -97,11 +83,30 @@ void Update()
   float dt = float(t2-t);
   t = t2;
   /*Good idea to remove this*/
-  std::cout << "Render time: " << dt << " ms." << std::endl;
+  // std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
+
+  UserInput();
 }
 
-void VertexShader( const vec4& v, glm::ivec2& p ){
+void DrawPolygonEdges( screen* screen, const vector<vec4>& vertices ){
+
+  int V = vertices.size();
+  ivec2 projected;
+
+  vector<ivec2> projectedVertices( V );
+  for( int i=0; i<V; i++ ){
+    VertexShader( vertices[i], projectedVertices[i] );
+  }
+
+  for( int i=0; i<V; i++ ){
+    int j = (i+1)%V;
+    vec3 colour( 1.0, 1.0, 1.0 );
+    DrawLineBRS( screen, projectedVertices[i], projectedVertices[j], colour );
+  }
+}
+
+void VertexShader( const vec4& v, ivec2& p ){
   int x = (int) ( focal * ( v.x / (float) v.z ) ) + ( SCREEN_WIDTH / (float) 2 );
   int y = (int) ( focal * ( v.y / (float) v.z ) ) + ( SCREEN_HEIGHT / (float) 2 );
 
@@ -128,5 +133,38 @@ void TransformationMatrix(glm::mat4& M){
     M[3][1] = -camera.y;
     M[3][2] = -camera.z;
     M[3][3] = 1;
+  }
 
+  void UserInput(){
+    const uint8_t* keystate = SDL_GetKeyboardState( 0 );
+
+    if( keystate == NULL ) {
+      printf("keystate = NULL!\n");
+    }
+    // Rotation
+    if( keystate[SDL_SCANCODE_UP] ) {
+      theta.x -= PI/180;
+    }
+    if( keystate[SDL_SCANCODE_DOWN] ) {
+      theta.x += PI/180;
+    }
+    if( keystate[SDL_SCANCODE_LEFT] ) {
+      theta.y += PI/180;
+    }
+    if( keystate[SDL_SCANCODE_RIGHT] ) {
+      theta.y -= PI/180;
+    }
+
+    if( keystate[SDL_SCANCODE_W] ) {
+      camera.z += 0.005;
+    }
+    if( keystate[SDL_SCANCODE_S] ) {
+      camera.z -= 0.005;
+    }
+    if( keystate[SDL_SCANCODE_A] ) {
+      camera.x -= 0.005;
+    }
+    if( keystate[SDL_SCANCODE_D] ) {
+      camera.x += 0.005;
+    }
   }
