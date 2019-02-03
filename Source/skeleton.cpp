@@ -2,11 +2,13 @@
 #include <glm/glm.hpp>
 #include <SDL.h>
 #include "SDLauxiliary.h"
+#include "Bresenham.h"
 #include "TestModelH.h"
 #include <stdint.h>
 
 using namespace std;
 using glm::vec3;
+using glm::vec2;
 using glm::mat3;
 using glm::vec4;
 using glm::mat4;
@@ -58,25 +60,31 @@ void Draw(screen* screen)
 
   for( uint32_t i=0; i<triangles.size(); ++i )
     {
+      vector<ivec2> positions(3);
+
       vector<vec4> vertices(3);
       vertices[0] = triangles[i].v0;
       vertices[1] = triangles[i].v1;
       vertices[2] = triangles[i].v2;
+      vec3 colour(1,1,1);
+      
       for(int v=0; v<3; ++v)
         {
           vec4 vertex = matrix * vertices[v];
 
-          glm::ivec2 projPos;
+          ivec2 projected;
 
-          VertexShader( vertex, projPos );
+          VertexShader( vertex, projected );
 
-          vec3 colour(1,1,1);
-
-          int x = projPos.x; int y = projPos.y;
+          int x = projected.x; int y = projected.y;
           if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
-            PutPixelSDL( screen, projPos.x, projPos.y, colour );
+            PutPixelSDL( screen, projected.x, projected.y, colour );
           }
+          positions[v] = projected;
         }
+        DrawLineBRS( screen, positions[0], positions[1], colour );
+        DrawLineBRS( screen, positions[1], positions[2], colour );
+        DrawLineBRS( screen, positions[2], positions[0], colour );
       }
 }
 
@@ -98,6 +106,17 @@ void VertexShader( const vec4& v, glm::ivec2& p ){
   int y = (int) ( focal * ( v.y / (float) v.z ) ) + ( SCREEN_HEIGHT / (float) 2 );
 
   p.x = x;  p.y = y;
+}
+
+void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result ){
+  int N = result.size();
+  vec2 step = vec2(b-a) / float(max(N-1,1));
+  vec2 current( a );
+  for( int i=0; i<N; ++i )
+  {
+    result[i] = current;
+    current += step;
+  }
 }
 
 void TransformationMatrix(glm::mat4& M){
