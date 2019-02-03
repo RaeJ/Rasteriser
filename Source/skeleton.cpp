@@ -16,7 +16,7 @@ using glm::ivec2;
 
 
 #define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 256
+#define SCREEN_HEIGHT 320
 #define FULLSCREEN_MODE false
 #define PI 3.14159265
 
@@ -32,7 +32,7 @@ vec3 theta( 0.0, 0.0, 0.0 );
 void Update();
 void Draw(screen* screen);
 void VertexShader( const vec4& v, ivec2& p );
-void DrawPolygonEdges( screen* screen, const vector<vec4>& vertices );
+void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& c );
 void TransformationMatrix(glm::mat4& m);
 void Rotate();
 void UserInput();
@@ -70,7 +70,9 @@ void Draw(screen* screen)
       vertices[1] = matrix * triangles[i].v1;
       vertices[2] = matrix * triangles[i].v2;
 
-      DrawPolygonEdges( screen, vertices );
+      vec3 colour = triangles[i].colour;
+
+      ComputePolygonRows( screen, vertices, colour );
     }
 }
 
@@ -89,10 +91,10 @@ void Update()
   UserInput();
 }
 
-void DrawPolygonEdges( screen* screen, const vector<vec4>& vertices ){
+// TODO: Try making DrawLineBRS return a vector
+void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& colour ){
 
   int V = vertices.size();
-  ivec2 projected;
 
   vector<ivec2> projectedVertices( V );
   for( int i=0; i<V; i++ ){
@@ -101,9 +103,35 @@ void DrawPolygonEdges( screen* screen, const vector<vec4>& vertices ){
 
   for( int i=0; i<V; i++ ){
     int j = (i+1)%V;
-    vec3 colour( 1.0, 1.0, 1.0 );
-    DrawLineBRS( screen, projectedVertices[i], projectedVertices[j], colour );
+    ivec2 current = projectedVertices[i];
+    ivec2 next = projectedVertices[j];
+
+    DrawLineBRS( screen, current, next, colour );
   }
+  //
+  // int y1 = SCREEN_HEIGHT; int y2 = 0;
+  // for( int i=0; i<V; i++ ){
+  //   ivec2 projected = projectedVertices[i];
+  //   int j = (i+1)%V;
+  //
+  //   if( projected.y <= y1 ){
+  //     y1 = projected.y;
+  //   } else if( projected.y > y2 ){
+  //     y2 = projected.y;
+  //   }
+  // }
+  //
+  // int ROWS = y2 - y1;
+  //
+  // vector<ivec2> leftPixels( ROWS );
+  // vector<ivec2> rightPixels( ROWS );
+  //
+  // for( int i=0; i<ROWS; ++i )
+  // {
+  //   leftPixels[i].x  = +numeric_limits<int>::max();
+  //   rightPixels[i].x = -numeric_limits<int>::max();
+  // }
+
 }
 
 void VertexShader( const vec4& v, ivec2& p ){
@@ -154,7 +182,7 @@ void TransformationMatrix(glm::mat4& M){
     if( keystate[SDL_SCANCODE_RIGHT] ) {
       theta.y -= PI/180;
     }
-
+    // Move forward/back/left/right
     if( keystate[SDL_SCANCODE_W] ) {
       camera.z += 0.005;
     }
@@ -166,5 +194,10 @@ void TransformationMatrix(glm::mat4& M){
     }
     if( keystate[SDL_SCANCODE_D] ) {
       camera.x += 0.005;
+    }
+    // Reset state
+    if( keystate[SDL_SCANCODE_R] ) {
+      camera = vec4( 0, 0, -3.00, 1 );
+      theta = vec3( 0.0, 0.0, 0.0 );
     }
   }

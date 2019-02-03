@@ -1,11 +1,12 @@
 #ifndef BRESENHAM_H
 #define BRESENHAM_H
 
-#include "SDL.h"
-#include "SDLauxiliary.h"
 #include <iostream>
 #include <glm/glm.hpp>
+#include <SDL.h>
+#include "SDLauxiliary.h"
 #include <stdint.h>
+#include <string>
 
 using namespace std;
 using glm::vec3;
@@ -56,6 +57,8 @@ void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vec3 colour ){
       if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
         PutPixelSDL( screen, x, y, colour );
       }
+      // ivec2 point; point.x = x; point.y = y;
+      // result[i] = (point);
     }
   } else {
     if ( dy >= 0 ){
@@ -85,6 +88,8 @@ void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vec3 colour ){
       if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
         PutPixelSDL( screen, x, y, colour );
       }
+      // ivec2 point; point.x = x; point.y = y;
+      // result[i] = (point);
     }
   }
 }
