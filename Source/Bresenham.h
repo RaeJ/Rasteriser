@@ -21,16 +21,16 @@ void DrawLineBRS( screen* screen, Pixel a, Pixel b, vector<Pixel>& result );
 
 void DrawLineBRS( screen* screen, Pixel a, Pixel b, vector<Pixel>& result ){
   int x, y, xe, ye;
+  float zinv_step, zinv;
   int x1 = a.x;         int y1 = a.y;
   int x2 = b.x;         int y2 = b.y;
   int dx = x2 - x1;     int dy = y2 - y1;
   int dx1 = fabs(dx);   int dy1 = fabs(dy);
   int px = 2*dy1 - dx1; int py = 2*dx1 - dy1;
 
-  int SCREEN_WIDTH = screen -> width;
-  int SCREEN_HEIGHT = screen -> height;
-
   if( dy1 <= dx1 ){
+    zinv_step = abs(b.zinv - a.zinv) / ( float ) (max(dx - 1, 1));
+    zinv = min(b.zinv, a.zinv);
     if( dx >= 0 ){
       x = x1;
       y = y1;
@@ -52,10 +52,12 @@ void DrawLineBRS( screen* screen, Pixel a, Pixel b, vector<Pixel>& result ){
         }
         px = px + 2*( dy1 - dx1 );
       }
-      Pixel point; point.x = x; point.y = y;
+      Pixel point; point.x = x; point.y = y; point.zinv = zinv + zinv_step;
       result[i] = (point);
     }
   } else {
+    zinv_step = abs(b.zinv - a.zinv) / ( float ) (max(dy - 1, 1));
+    zinv = min(b.zinv, a.zinv);
     if ( dy >= 0 ){
       x = x1;
       y = y1;
@@ -77,7 +79,7 @@ void DrawLineBRS( screen* screen, Pixel a, Pixel b, vector<Pixel>& result ){
         }
         py = py + 2*( dx1 - dy1 );
       }
-      Pixel point; point.x = x; point.y = y;
+      Pixel point; point.x = x; point.y = y; point.zinv = zinv + zinv_step;
       result[i] = (point);
     }
   }

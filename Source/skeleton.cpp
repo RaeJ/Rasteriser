@@ -38,6 +38,7 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& c )
 void TransformationMatrix(glm::mat4& m);
 void Rotate();
 void UserInput();
+void PixelShader( screen* screen, const Pixel& p, vec3& c );
 
 int main( int argc, char* argv[] )
 {
@@ -114,6 +115,8 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
     int j = (i+1)%V;
     Pixel current = projectedVertices[i];
     Pixel next = projectedVertices[j];
+    cout << "z1: " << current.zinv << "\n";
+    cout << "z2: " << next.zinv << "\n";
 
     int delta_x = abs(current.x - next.x);
     int delta_y = abs(current.y - next.y);
@@ -155,12 +158,17 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
     vector<Pixel> edge = edges[i];
     for( int j=0; j<edge.size(); j++ ){
       int y = edge[j].y;
+      int index = y-offset;
 
-      if( edge[j].x < leftPixels[y-offset].x ){
-        leftPixels[y-offset].x = edge[j].x;
+      if( edge[j].x < leftPixels[index].x ){
+        leftPixels[index].x = edge[j].x;
+        leftPixels[index].y = edge[j].y;
+        leftPixels[index].zinv = edge[j].zinv;
       }
-      if( edge[j].x > rightPixels[y-offset].x){
-        rightPixels[y-offset].x = edge[j].x;
+      if( edge[j].x > rightPixels[index].x){
+        rightPixels[index].x = edge[j].x;
+        rightPixels[index].y = edge[j].y;
+        rightPixels[index].zinv = edge[j].zinv;
       }
     }
   }
@@ -168,20 +176,15 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
   for( int i=0; i<ROWS; ++i )
   {
     Pixel left, right;
-    left.x = leftPixels[i].x;   left.y = i + offset;
-    right.x = rightPixels[i].x; right.y = i + offset;
+    left = leftPixels[i];
+    right = rightPixels[i];
 
     vector<Pixel> result( abs( right.x - left.x ) );
 
     DrawLineBRS( screen, left, right, result );
 
     for( int j=0; j<result.size(); j++ ){
-      int x = result[j].x;
-      int y = result[j].y;
-
-      if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
-        PutPixelSDL( screen, x, y, colour );
-      }
+      PixelShader( screen, result[j], colour);
     }
   }
 }
@@ -190,13 +193,30 @@ void VertexShader( const vec4& v, Pixel& p ){
   int x = (int) ( focal * ( v.x / (float) v.z ) ) + ( SCREEN_WIDTH / (float) 2 );
   int y = (int) ( focal * ( v.y / (float) v.z ) ) + ( SCREEN_HEIGHT / (float) 2 );
 
-  if( v.z != 0 ){
+  if( v.z != 0.0 ){
     p.zinv = ( float ) ( 1 / ( float ) v.z );
   } else {
     p.zinv = 0;
   }
 
+  p.d = v; 
+
   p.x = x;  p.y = y;
+}
+
+void PixelShader( screen* screen, const Pixel& p, vec3& c )
+{
+  int x = p.x;
+  int y = p.y;
+  cout << "pzinv: " << p.zinv << "\n";
+  cout << "depth: " << depthBuffer[y][x] << "\n";
+  if( p.zinv > depthBuffer[y][x] )
+  {
+    if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
+      depthBuffer[y][x] = p.zinv;
+      PutPixelSDL( screen, x, y, c );
+    }
+  }
 }
 
 void TransformationMatrix(glm::mat4& M){
