@@ -91,10 +91,11 @@ void Update()
   UserInput();
 }
 
-// TODO: Try making DrawLineBRS return a vector
 void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& colour ){
 
   int V = vertices.size();
+
+  vector< vector<ivec2> > edges( V );
 
   vector<ivec2> projectedVertices( V );
   for( int i=0; i<V; i++ ){
@@ -106,32 +107,66 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
     ivec2 current = projectedVertices[i];
     ivec2 next = projectedVertices[j];
 
-    DrawLineBRS( screen, current, next, colour );
-  }
-  //
-  // int y1 = SCREEN_HEIGHT; int y2 = 0;
-  // for( int i=0; i<V; i++ ){
-  //   ivec2 projected = projectedVertices[i];
-  //   int j = (i+1)%V;
-  //
-  //   if( projected.y <= y1 ){
-  //     y1 = projected.y;
-  //   } else if( projected.y > y2 ){
-  //     y2 = projected.y;
-  //   }
-  // }
-  //
-  // int ROWS = y2 - y1;
-  //
-  // vector<ivec2> leftPixels( ROWS );
-  // vector<ivec2> rightPixels( ROWS );
-  //
-  // for( int i=0; i<ROWS; ++i )
-  // {
-  //   leftPixels[i].x  = +numeric_limits<int>::max();
-  //   rightPixels[i].x = -numeric_limits<int>::max();
-  // }
+    int delta_x = abs(current.x - next.x);
+    int delta_y = abs(current.y - next.y);
 
+    vector<ivec2> result( max( delta_x, delta_y ) );
+
+    DrawLineBRS( screen, current, next, result, colour );
+
+    edges[i] = result;
+  }
+
+  int y1 = +numeric_limits<int>::max(); int y2 = -numeric_limits<int>::max();
+  for( int i=0; i<V; i++ ){
+    ivec2 projected = projectedVertices[i];
+    int j = (i+1)%V;
+
+    if( projected.y < y1 ){
+      y1 = projected.y;
+    }
+    if( projected.y > y2 ){
+      y2 = projected.y;
+    }
+  }
+
+  int ROWS = y2 - y1 + 1;
+  int offset = min( y1, y2 );
+
+  vector<ivec2> leftPixels( ROWS );
+  vector<ivec2> rightPixels( ROWS );
+
+  for( int i=0; i<ROWS; ++i )
+  {
+    leftPixels[i].x  = +numeric_limits<int>::max();
+    rightPixels[i].x = -numeric_limits<int>::max();
+  }
+
+  for( int i=0; i<V; i++ ){
+
+    vector<ivec2> edge = edges[i];
+    for( int j=0; j<edge.size(); j++ ){
+      int y = edge[j].y;
+
+      if( edge[j].x < leftPixels[y-offset].x ){
+        leftPixels[y-offset].x = edge[j].x;
+      }
+      if( edge[j].x > rightPixels[y-offset].x){
+        rightPixels[y-offset].x = edge[j].x;
+      }
+    }
+  }
+
+  for( int i=0; i<ROWS; ++i )
+  {
+    ivec2 left, right;
+    left.x = leftPixels[i].x;   left.y = i + offset;
+    right.x = rightPixels[i].x; right.y = i + offset;
+
+    vector<ivec2> result( abs( right.x - left.x ) );
+
+    DrawLineBRS( screen, left, right, result, colour );
+  }
 }
 
 void VertexShader( const vec4& v, ivec2& p ){

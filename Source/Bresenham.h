@@ -7,6 +7,7 @@
 #include "SDLauxiliary.h"
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 using namespace std;
 using glm::vec3;
@@ -15,10 +16,10 @@ using glm::vec4;
 using glm::mat4;
 using glm::ivec2;
 
-void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vec3 colour );
+void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vector<ivec2>& result, vec3 colour );
 
 
-void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vec3 colour ){
+void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vector<ivec2>& result, vec3 colour ){
   int x, y, xe, ye;
   int x1 = a.x;         int y1 = a.y;
   int x2 = b.x;         int y2 = b.y;
@@ -57,8 +58,8 @@ void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vec3 colour ){
       if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
         PutPixelSDL( screen, x, y, colour );
       }
-      // ivec2 point; point.x = x; point.y = y;
-      // result[i] = (point);
+      ivec2 point; point.x = x; point.y = y;
+      result[i] = (point);
     }
   } else {
     if ( dy >= 0 ){
@@ -88,8 +89,8 @@ void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vec3 colour ){
       if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
         PutPixelSDL( screen, x, y, colour );
       }
-      // ivec2 point; point.x = x; point.y = y;
-      // result[i] = (point);
+      ivec2 point; point.x = x; point.y = y;
+      result[i] = (point);
     }
   }
 }
