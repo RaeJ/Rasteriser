@@ -14,10 +14,10 @@ public:
 	glm::vec4 v1;
 	glm::vec4 v2;
 	glm::vec4 normal;
-	glm::vec3 color;
+	glm::vec3 colour;
 
-	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color )
-		: v0(v0), v1(v1), v2(v2), color(color)
+	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 colour )
+		: v0(v0), v1(v1), v2(v2), colour(colour)
 	{
 		ComputeNormal();
 	}
@@ -97,7 +97,7 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	B = vec4(130,0, 65,1);
 	C = vec4(240,0,272,1);
 	D = vec4( 82,0,225,1);
-	       
+
 	E = vec4(290,165,114,1);
 	F = vec4(130,165, 65,1);
 	G = vec4(240,165,272,1);
@@ -130,7 +130,7 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	B = vec4(265,0,296,1);
 	C = vec4(472,0,406,1);
 	D = vec4(314,0,456,1);
-	       
+
 	E = vec4(423,330,247,1);
 	F = vec4(265,330,296,1);
 	G = vec4(472,330,406,1);
@@ -181,7 +181,7 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 		triangles[i].v0.w = 1.0;
 		triangles[i].v1.w = 1.0;
 		triangles[i].v2.w = 1.0;
-		
+
 		triangles[i].ComputeNormal();
 	}
 }

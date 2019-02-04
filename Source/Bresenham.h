@@ -16,10 +16,10 @@ using glm::vec4;
 using glm::mat4;
 using glm::ivec2;
 
-void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vector<ivec2>& result, vec3 colour );
+void DrawLineBRS( screen* screen, Pixel a, Pixel b, vector<Pixel>& result );
 
 
-void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vector<ivec2>& result, vec3 colour ){
+void DrawLineBRS( screen* screen, Pixel a, Pixel b, vector<Pixel>& result ){
   int x, y, xe, ye;
   int x1 = a.x;         int y1 = a.y;
   int x2 = b.x;         int y2 = b.y;
@@ -40,9 +40,6 @@ void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vector<ivec2>& result, vec3 
       y = y2;
       xe = x1;
     }
-    if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
-      PutPixelSDL( screen, x, y, colour );
-    }
     for( int i=0; x<xe; i++ ){
       x = x+1;
       if( px < 0 ){
@@ -55,10 +52,7 @@ void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vector<ivec2>& result, vec3 
         }
         px = px + 2*( dy1 - dx1 );
       }
-      if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
-        PutPixelSDL( screen, x, y, colour );
-      }
-      ivec2 point; point.x = x; point.y = y;
+      Pixel point; point.x = x; point.y = y;
       result[i] = (point);
     }
   } else {
@@ -70,9 +64,6 @@ void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vector<ivec2>& result, vec3 
       x = x2;
       y = y2;
       ye = y1;
-    }
-    if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
-      PutPixelSDL( screen, x, y, colour );
     }
     for( int i=0; y<ye; i++ ){
       y = y+1;
@@ -86,10 +77,7 @@ void DrawLineBRS( screen* screen, ivec2 a, ivec2 b, vector<ivec2>& result, vec3 
         }
         py = py + 2*( dx1 - dy1 );
       }
-      if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
-        PutPixelSDL( screen, x, y, colour );
-      }
-      ivec2 point; point.x = x; point.y = y;
+      Pixel point; point.x = x; point.y = y;
       result[i] = (point);
     }
   }

@@ -15,6 +15,13 @@ typedef struct{
   uint32_t *buffer;
 } screen;
 
+struct Pixel
+{
+  int x;
+  int y;
+  float zinv;
+};
+
 screen* InitializeSDL( int width, int height, bool fullscreen = false );
 bool NoQuitMessageSDL();
 void PutPixelSDL( screen *s, int x, int y, glm::vec3 color );
@@ -50,7 +57,7 @@ void SDL_SaveImage(screen *s, const char* filename)
 		<< SDL_GetError() << std::endl;
       exit(1);
     }
-  
+
 }
 
 void KillSDL(screen* s)
@@ -78,13 +85,13 @@ screen* InitializeSDL(int width,int height, bool fullscreen)
 		<< SDL_GetError() << std::endl;
       exit(1);
     }
-  
+
   screen *s = new screen;
   s->width = width;
   s->height = height;
   s->buffer = new uint32_t[width*height];
   memset(s->buffer, 0, width*height*sizeof(uint32_t));
-  
+
   uint32_t flags = SDL_WINDOW_OPENGL;
   if(fullscreen)
     {
@@ -122,7 +129,7 @@ screen* InitializeSDL(int width,int height, bool fullscreen)
 	     << SDL_GetError() << std::endl;
       exit(1);
     }
-  
+
   return s;
 }
 

@@ -22,6 +22,8 @@ using glm::ivec2;
 
 vec4 camera( 0, 0, -3.00, 1 );
 int focal = SCREEN_WIDTH;
+float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+
 vector<Triangle> triangles;
 
 vec3 theta( 0.0, 0.0, 0.0 );
@@ -31,7 +33,7 @@ vec3 theta( 0.0, 0.0, 0.0 );
 
 void Update();
 void Draw(screen* screen);
-void VertexShader( const vec4& v, ivec2& p );
+void VertexShader( const vec4& v, Pixel& p );
 void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& c );
 void TransformationMatrix(glm::mat4& m);
 void Rotate();
@@ -59,6 +61,12 @@ int main( int argc, char* argv[] )
 /*Place your drawing here*/
 void Draw(screen* screen)
 {
+  for( int y=0; y<SCREEN_HEIGHT; ++y ){
+    for( int x=0; x<SCREEN_WIDTH; ++x ){
+      depthBuffer[y][x] = 0;
+    }
+  }
+
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
   mat4 matrix;  TransformationMatrix(matrix);
@@ -95,31 +103,31 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
 
   int V = vertices.size();
 
-  vector< vector<ivec2> > edges( V );
+  vector< vector<Pixel> > edges( V );
 
-  vector<ivec2> projectedVertices( V );
+  vector<Pixel> projectedVertices( V );
   for( int i=0; i<V; i++ ){
     VertexShader( vertices[i], projectedVertices[i] );
   }
 
   for( int i=0; i<V; i++ ){
     int j = (i+1)%V;
-    ivec2 current = projectedVertices[i];
-    ivec2 next = projectedVertices[j];
+    Pixel current = projectedVertices[i];
+    Pixel next = projectedVertices[j];
 
     int delta_x = abs(current.x - next.x);
     int delta_y = abs(current.y - next.y);
 
-    vector<ivec2> result( max( delta_x, delta_y ) );
+    vector<Pixel> result( max( delta_x, delta_y ) );
 
-    DrawLineBRS( screen, current, next, result, colour );
+    DrawLineBRS( screen, current, next, result );
 
     edges[i] = result;
   }
 
   int y1 = +numeric_limits<int>::max(); int y2 = -numeric_limits<int>::max();
   for( int i=0; i<V; i++ ){
-    ivec2 projected = projectedVertices[i];
+    Pixel projected = projectedVertices[i];
     int j = (i+1)%V;
 
     if( projected.y < y1 ){
@@ -133,8 +141,8 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
   int ROWS = y2 - y1 + 1;
   int offset = min( y1, y2 );
 
-  vector<ivec2> leftPixels( ROWS );
-  vector<ivec2> rightPixels( ROWS );
+  vector<Pixel> leftPixels( ROWS );
+  vector<Pixel> rightPixels( ROWS );
 
   for( int i=0; i<ROWS; ++i )
   {
@@ -144,7 +152,7 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
 
   for( int i=0; i<V; i++ ){
 
-    vector<ivec2> edge = edges[i];
+    vector<Pixel> edge = edges[i];
     for( int j=0; j<edge.size(); j++ ){
       int y = edge[j].y;
 
@@ -159,19 +167,34 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
 
   for( int i=0; i<ROWS; ++i )
   {
-    ivec2 left, right;
+    Pixel left, right;
     left.x = leftPixels[i].x;   left.y = i + offset;
     right.x = rightPixels[i].x; right.y = i + offset;
 
-    vector<ivec2> result( abs( right.x - left.x ) );
+    vector<Pixel> result( abs( right.x - left.x ) );
 
-    DrawLineBRS( screen, left, right, result, colour );
+    DrawLineBRS( screen, left, right, result );
+
+    for( int j=0; j<result.size(); j++ ){
+      int x = result[j].x;
+      int y = result[j].y;
+
+      if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
+        PutPixelSDL( screen, x, y, colour );
+      }
+    }
   }
 }
 
-void VertexShader( const vec4& v, ivec2& p ){
+void VertexShader( const vec4& v, Pixel& p ){
   int x = (int) ( focal * ( v.x / (float) v.z ) ) + ( SCREEN_WIDTH / (float) 2 );
   int y = (int) ( focal * ( v.y / (float) v.z ) ) + ( SCREEN_HEIGHT / (float) 2 );
+
+  if( v.z != 0 ){
+    p.zinv = ( float ) ( 1 / ( float ) v.z );
+  } else {
+    p.zinv = 0;
+  }
 
   p.x = x;  p.y = y;
 }
