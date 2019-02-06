@@ -32,8 +32,8 @@ vec3 theta( 0.0, 0.0, 0.0 );
 
 void Update();
 void Draw(screen* screen);
-void VertexShader( const vec4& v, Pixel& p );
-void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& c );
+void VertexShader( const Vertex& v, Pixel& p );
+void ComputePolygonRows( screen* screen, const vector<Vertex>& vertices, vec3& c );
 void TransformationMatrix(glm::mat4& m);
 void Rotate();
 void UserInput();
@@ -74,10 +74,10 @@ void Draw(screen* screen)
 
   for( uint32_t i=0; i<triangles.size(); ++i )
     {
-      vector<vec4> vertices(3);
-      vertices[0] = matrix * triangles[i].v0;
-      vertices[1] = matrix * triangles[i].v1;
-      vertices[2] = matrix * triangles[i].v2;
+      vector<Vertex> vertices(3);
+      vertices[0].position = matrix * triangles[i].v0;
+      vertices[1].position = matrix * triangles[i].v1;
+      vertices[2].position = matrix * triangles[i].v2;
 
       vec3 colour = triangles[i].colour;
 
@@ -100,7 +100,7 @@ void Update()
   UserInput();
 }
 
-void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& colour ){
+void ComputePolygonRows( screen* screen, const vector<Vertex>& vertices, vec3& colour ){
   int V = vertices.size();
   vector<Pixel> projectedVertices( V );
 
@@ -183,7 +183,9 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
     }
 }
 
-void VertexShader( const vec4& v, Pixel& p ){
+void VertexShader( const Vertex& vertex, Pixel& p ){
+  vec4 v = vertex.position;
+
   int x = (int) ( focal * ( v.x / (float) v.z ) ) + ( SCREEN_WIDTH / (float) 2 );
   int y = (int) ( focal * ( v.y / (float) v.z ) ) + ( SCREEN_HEIGHT / (float) 2 );
 

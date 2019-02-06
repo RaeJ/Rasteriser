@@ -24,6 +24,11 @@ struct Pixel
   float zinv;
 };
 
+struct Vertex
+{
+  vec4 position;
+};
+
 screen* InitializeSDL( int width, int height, bool fullscreen = false );
 bool NoQuitMessageSDL();
 void PutPixelSDL( screen *s, int x, int y, glm::vec3 color );
