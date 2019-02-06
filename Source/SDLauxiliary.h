@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 using glm::vec4;
+using glm::vec3;
 
 typedef struct{
   SDL_Window *window;
@@ -22,11 +23,17 @@ struct Pixel
   int x;
   int y;
   float zinv;
+  vec3 illumination;
+  vec4 pos4d;
+  vec4 normal;
+  vec3 reflectance;
 };
 
 struct Vertex
 {
   vec4 position;
+  vec4 normal;
+  vec3 reflectance;
 };
 
 screen* InitializeSDL( int width, int height, bool fullscreen = false );

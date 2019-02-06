@@ -22,10 +22,14 @@ using glm::ivec2;
 vec4 camera( 0, 0, -3.00, 1 );
 int focal = SCREEN_WIDTH;
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+float pi = PI;
 
 vector<Triangle> triangles;
 
 vec3 theta( 0.0, 0.0, 0.0 );
+vec3 light_position(0,-0.5,-0.7);
+vec3 light_power = 11.1f*vec3( 1, 1, 1 );
+vec3 indirect_light = 0.5f*vec3( 1, 1, 1 );
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -33,12 +37,13 @@ vec3 theta( 0.0, 0.0, 0.0 );
 void Update();
 void Draw(screen* screen);
 void VertexShader( const Vertex& v, Pixel& p );
-void ComputePolygonRows( screen* screen, const vector<Vertex>& vertices, vec3& c );
+void ComputePolygonRows( screen* screen, const vector<Vertex>& vertices );
 void TransformationMatrix(glm::mat4& m);
 void Rotate();
 void UserInput();
-void PixelShader( screen* screen, const Pixel& p, vec3& c );
+void PixelShader( screen* screen, const Pixel& p );
 void Interpolate( Pixel a, Pixel b, vector<Pixel>& result );
+void PixelIllumination( Pixel p );
 
 int main( int argc, char* argv[] )
 {
@@ -53,7 +58,7 @@ int main( int argc, char* argv[] )
       SDL_Renderframe(screen);
     }
 
-  SDL_SaveImage( screen, "screenshot.png" );
+  SDL_SaveImage( screen, "screenshot.bmp" );
 
   KillSDL(screen);
   return 0;
@@ -74,14 +79,23 @@ void Draw(screen* screen)
 
   for( uint32_t i=0; i<triangles.size(); ++i )
     {
-      vector<Vertex> vertices(3);
-      vertices[0].position = matrix * triangles[i].v0;
-      vertices[1].position = matrix * triangles[i].v1;
-      vertices[2].position = matrix * triangles[i].v2;
-
+      vec4 normal = triangles[i].normal;
       vec3 colour = triangles[i].colour;
+      vector<Vertex> vertices(3);
 
-      ComputePolygonRows( screen, vertices, colour );
+      vertices[0].position    = matrix * triangles[i].v0;
+      vertices[0].normal      = normal;
+      vertices[0].reflectance = colour;
+
+      vertices[1].position    = matrix * triangles[i].v1;
+      vertices[1].normal      = normal;
+      vertices[1].reflectance = colour;
+
+      vertices[2].position    = matrix * triangles[i].v2;
+      vertices[2].normal      = normal;
+      vertices[2].reflectance = colour;
+
+      ComputePolygonRows( screen, vertices );
     }
 }
 
@@ -100,7 +114,7 @@ void Update()
   UserInput();
 }
 
-void ComputePolygonRows( screen* screen, const vector<Vertex>& vertices, vec3& colour ){
+void ComputePolygonRows( screen* screen, const vector<Vertex>& vertices ){
   int V = vertices.size();
   vector<Pixel> projectedVertices( V );
 
@@ -153,14 +167,20 @@ void ComputePolygonRows( screen* screen, const vector<Vertex>& vertices, vec3& c
       int index = y - y1;
 
       if( edge[j].x < leftPixels[index].x ){
-        leftPixels[index].x = edge[j].x;
-        leftPixels[index].y = edge[j].y;
-        leftPixels[index].zinv = edge[j].zinv;
+        leftPixels[index].x             = edge[j].x;
+        leftPixels[index].y             = edge[j].y;
+        leftPixels[index].zinv          = edge[j].zinv;
+        leftPixels[index].reflectance   = edge[j].reflectance;
+        leftPixels[index].pos4d         = edge[j].pos4d;
+        leftPixels[index].illumination  = edge[j].illumination;
       }
       if( edge[j].x > rightPixels[index].x){
-        rightPixels[index].x = edge[j].x;
-        rightPixels[index].y = edge[j].y;
-        rightPixels[index].zinv = edge[j].zinv;
+        rightPixels[index].x            = edge[j].x;
+        rightPixels[index].y            = edge[j].y;
+        rightPixels[index].zinv         = edge[j].zinv;
+        rightPixels[index].reflectance  = edge[j].reflectance;
+        rightPixels[index].pos4d        = edge[j].pos4d;
+        rightPixels[index].illumination = edge[j].illumination;
         }
 
       }
@@ -178,54 +198,83 @@ void ComputePolygonRows( screen* screen, const vector<Vertex>& vertices, vec3& c
       Interpolate( left, right, line );
 
       for( int j=0; j<line.size(); j++ ){
-        PixelShader( screen, line[j], colour);
+        PixelShader( screen, line[j] );
       }
     }
 }
 
 void VertexShader( const Vertex& vertex, Pixel& p ){
+  // 4D position
   vec4 v = vertex.position;
+  p.pos4d = v;
 
+  // The 2D position
   int x = (int) ( focal * ( v.x / (float) v.z ) ) + ( SCREEN_WIDTH / (float) 2 );
   int y = (int) ( focal * ( v.y / (float) v.z ) ) + ( SCREEN_HEIGHT / (float) 2 );
 
+  p.x = x;  p.y = y;
+
+  // The depth of the point
   if( v.z != 0.0 ){
     p.zinv = ( float ) ( 1 / ( float ) v.z );
   } else {
     p.zinv = 0;
   }
 
-  p.x = x;  p.y = y;
+  p.normal      = vertex.normal;
+  p.reflectance = vertex.reflectance;
 }
 
-void PixelShader( screen* screen, const Pixel& p, vec3& c )
+void PixelShader( screen* screen, const Pixel& p )
 {
   int x = p.x;
   int y = p.y;
+  PixelIllumination( p );
+
   if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
     if( p.zinv > depthBuffer[y][x] )
     {
       depthBuffer[y][x] = p.zinv;
-      PutPixelSDL( screen, x, y, c );
+      PutPixelSDL( screen, x, y, p.reflectance * ( p.illumination + indirect_light ) );
     }
   }
 }
 
+void PixelIllumination( Pixel p )
+{
+  vec3 radius = glm::normalize( light_position - vec3( p.pos4d ) );
+  float diffuse = glm::dot( radius, vec3( p.normal ) );
+  vec3 power = light_power * diffuse;
+  if ( diffuse < 0  ){ power = vec3( 0, 0, 0 ); }
+  float denominator = 4 * pi * glm::dot( radius, radius );
+
+  p.illumination = ( power / denominator );
+}
+
 void Interpolate( Pixel a, Pixel b, vector<Pixel>& result ){
   float x, y, zinv;
+  vec4 pos4d;
+
   int N = result.size();
+  vec3 colour = a.reflectance;
+  vec4 normal = a.normal;
+
 
   if( N == 1 )
   {
-    result[0].x = (int) ( b.x + a.x ) / (float) 2;
-    result[0].y = (int) ( b.y + a.y ) / (float) 2;
-    result[0].zinv = ( b.zinv + a.zinv ) / (float) 2;
+    result[0].x           = (int) ( b.x + a.x ) / (float) 2;
+    result[0].y           = (int) ( b.y + a.y ) / (float) 2;
+    result[0].zinv        = ( b.zinv + a.zinv ) / (float) 2;
+    result[0].pos4d       = ( b.pos4d + a.pos4d ) / (float) 2;
+    result[0].reflectance = colour;
+    result[0].normal      = normal;
   }
   else
   {
-    x = ( b.x - a.x ) / ( float ) ( N - 1 );
-    y = ( b.y - a.y ) / ( float ) ( N - 1 );
-    zinv = ( b.zinv - a.zinv ) / ( float ) ( N - 1 );
+    x     = ( b.x - a.x ) / ( float ) ( N - 1 );
+    y     = ( b.y - a.y ) / ( float ) ( N - 1 );
+    zinv  = ( b.zinv - a.zinv ) / ( float ) ( N - 1 );
+    pos4d = ( b.pos4d + a.pos4d ) / (float) ( N - 1 );
 
     for(int i=0; i<result.size(); i++){
       int result_x = (a.x + (i*x));
@@ -238,9 +287,13 @@ void Interpolate( Pixel a, Pixel b, vector<Pixel>& result ){
         result_y = min( a.y, b.y );
       }
 
-      result[i].x = result_x;
-      result[i].y = result_y;
-      result[i].zinv = a.zinv + (i*zinv);
+      result[i].x           = result_x;
+      result[i].y           = result_y;
+      result[i].zinv        = a.zinv + ( i * zinv );
+      result[i].pos4d       = a.pos4d + ( (float) i * pos4d );
+      result[i].reflectance = colour;
+      result[i].normal      = normal;
+
     }
   }
 }
