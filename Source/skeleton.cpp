@@ -126,17 +126,6 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
     edges[i] = result;
   }
 
-  for( int i = 0; i<V; i++ ){
-    vector<Pixel> result = edges[i];
-    for( int j=0; j<result.size(); j++ ){
-      int x = result[j].x;
-      int y = result[j].y;
-      if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
-        PutPixelSDL( screen, x, y, colour );
-      }
-    }
-  }
-
   int y1 = +numeric_limits<int>::max(); int y2 = -numeric_limits<int>::max();
   for( int i=0; i<V; i++ ){
     Pixel projected = projectedVertices[i];
@@ -144,7 +133,6 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
     if( projected.y < y1 ){ y1 = projected.y; }
     if( projected.y > y2 ){ y2 = projected.y; }
   }
-
 
   int ROWS = y2 - y1 + 1;
 
@@ -160,7 +148,6 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
 
   for( int i=0; i<V; i++ ){
     vector<Pixel> edge = edges[i];
-
     for( int j=0; j<edge.size(); j++ ){
       int y = edge[j].y;
 
@@ -195,7 +182,6 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
         PixelShader( screen, line[j], colour);
       }
     }
-
 }
 
 void VertexShader( const vec4& v, Pixel& p ){
@@ -217,10 +203,9 @@ void PixelShader( screen* screen, const Pixel& p, vec3& c )
 {
   int x = p.x;
   int y = p.y;
-
-  if( p.zinv > depthBuffer[y][x] )
-  {
-    if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
+  if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
+    if( p.zinv > depthBuffer[y][x] )
+    {
       depthBuffer[y][x] = p.zinv;
       PutPixelSDL( screen, x, y, c );
     }
@@ -236,6 +221,10 @@ void Interpolate( Pixel a, Pixel b, vector<Pixel>& result ){
     result[0].x = (int) ( b.x + a.x ) / (float) 2;
     result[0].y = (int) ( b.y + a.y ) / (float) 2;
     result[0].zinv = ( b.zinv + a.zinv ) / (float) 2;
+
+    // cout << "x: " << result[0].x << "\n";
+    // cout << "y: " << result[0].y << "\n";
+    // cout << "zinv: " << result[0].zinv << "\n --------------- \n";
   }
   else
   {
