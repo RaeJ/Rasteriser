@@ -43,7 +43,7 @@ void Rotate();
 void UserInput();
 void PixelShader( screen* screen, const Pixel& p );
 void Interpolate( Pixel a, Pixel b, vector<Pixel>& result );
-void PixelIllumination( Pixel p );
+vec3 PixelIllumination( Pixel p );
 
 int main( int argc, char* argv[] )
 {
@@ -172,7 +172,7 @@ void ComputePolygonRows( screen* screen, const vector<Vertex>& vertices ){
         leftPixels[index].zinv          = edge[j].zinv;
         leftPixels[index].reflectance   = edge[j].reflectance;
         leftPixels[index].pos4d         = edge[j].pos4d;
-        leftPixels[index].illumination  = edge[j].illumination;
+        leftPixels[index].normal        = edge[j].normal;
       }
       if( edge[j].x > rightPixels[index].x){
         rightPixels[index].x            = edge[j].x;
@@ -180,33 +180,35 @@ void ComputePolygonRows( screen* screen, const vector<Vertex>& vertices ){
         rightPixels[index].zinv         = edge[j].zinv;
         rightPixels[index].reflectance  = edge[j].reflectance;
         rightPixels[index].pos4d        = edge[j].pos4d;
-        rightPixels[index].illumination = edge[j].illumination;
-        }
-
+        rightPixels[index].normal       = edge[j].normal;
       }
+
     }
+  }
 
-    for( int i=0; i<ROWS; ++i )
-    {
-      Pixel left, right;
-      left = leftPixels[i];
-      right = rightPixels[i];
+  for( int i=0; i<ROWS; ++i )
+  {
+    Pixel left, right;
+    left = leftPixels[i];
+    right = rightPixels[i];
 
-      int pixels = right.x - left.x + 1;
-      vector<Pixel> line( pixels );
+    int pixels = right.x - left.x + 1;
+    vector<Pixel> line( pixels );
 
-      Interpolate( left, right, line );
+    Interpolate( left, right, line );
 
-      for( int j=0; j<line.size(); j++ ){
-        PixelShader( screen, line[j] );
-      }
+    for( int j=0; j<line.size(); j++ ){
+      PixelShader( screen, line[j] );
     }
+  }
 }
 
 void VertexShader( const Vertex& vertex, Pixel& p ){
+  mat4 matrix;  TransformationMatrix(matrix);
+
   // 4D position
   vec4 v = vertex.position;
-  p.pos4d = v;
+  p.pos4d = glm::inverse( matrix ) * v;
 
   // The 2D position
   int x = (int) ( focal * ( v.x / (float) v.z ) ) + ( SCREEN_WIDTH / (float) 2 );
@@ -229,26 +231,27 @@ void PixelShader( screen* screen, const Pixel& p )
 {
   int x = p.x;
   int y = p.y;
-  PixelIllumination( p );
+  vec3 illumination = PixelIllumination( p );
 
   if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
     if( p.zinv > depthBuffer[y][x] )
     {
       depthBuffer[y][x] = p.zinv;
-      PutPixelSDL( screen, x, y, p.reflectance * ( p.illumination + indirect_light ) );
+      PutPixelSDL( screen, x, y, p.reflectance * ( illumination + indirect_light ) );
     }
   }
 }
 
-void PixelIllumination( Pixel p )
+vec3 PixelIllumination( Pixel p )
 {
   vec3 radius = glm::normalize( light_position - vec3( p.pos4d ) );
-  float diffuse = glm::dot( radius, vec3( p.normal ) );
+  vec3 normal = glm::normalize( vec3( p.normal ) );
+  float diffuse = glm::dot( radius, normal );
   vec3 power = light_power * diffuse;
   if ( diffuse < 0  ){ power = vec3( 0, 0, 0 ); }
   float denominator = 4 * pi * glm::dot( radius, radius );
 
-  p.illumination = ( power / denominator );
+  return ( power / denominator );
 }
 
 void Interpolate( Pixel a, Pixel b, vector<Pixel>& result ){

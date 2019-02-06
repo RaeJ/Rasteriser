@@ -23,7 +23,6 @@ struct Pixel
   int x;
   int y;
   float zinv;
-  vec3 illumination;
   vec4 pos4d;
   vec4 normal;
   vec3 reflectance;
