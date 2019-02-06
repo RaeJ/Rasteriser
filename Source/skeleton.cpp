@@ -138,7 +138,6 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
 
   vector<Pixel> leftPixels( ROWS );
   vector<Pixel> rightPixels( ROWS );
-  // cout << "4." << "\n";
 
   for( int i=0; i<ROWS; ++i )
   {
@@ -194,8 +193,6 @@ void VertexShader( const vec4& v, Pixel& p ){
     p.zinv = 0;
   }
 
-  p.d = v;
-
   p.x = x;  p.y = y;
 }
 
@@ -221,10 +218,6 @@ void Interpolate( Pixel a, Pixel b, vector<Pixel>& result ){
     result[0].x = (int) ( b.x + a.x ) / (float) 2;
     result[0].y = (int) ( b.y + a.y ) / (float) 2;
     result[0].zinv = ( b.zinv + a.zinv ) / (float) 2;
-
-    // cout << "x: " << result[0].x << "\n";
-    // cout << "y: " << result[0].y << "\n";
-    // cout << "zinv: " << result[0].zinv << "\n --------------- \n";
   }
   else
   {

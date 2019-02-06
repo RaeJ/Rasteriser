@@ -22,7 +22,6 @@ struct Pixel
   int x;
   int y;
   float zinv;
-  vec4 d;
 };
 
 screen* InitializeSDL( int width, int height, bool fullscreen = false );
