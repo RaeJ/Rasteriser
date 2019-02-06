@@ -2,7 +2,6 @@
 #include <glm/glm.hpp>
 #include <SDL.h>
 #include "SDLauxiliary.h"
-#include "Bresenham.h"
 #include "TestModelH.h"
 #include <stdint.h>
 
@@ -39,6 +38,7 @@ void TransformationMatrix(glm::mat4& m);
 void Rotate();
 void UserInput();
 void PixelShader( screen* screen, const Pixel& p, vec3& c );
+void Interpolate( Pixel a, Pixel b, vector<Pixel>& result );
 
 int main( int argc, char* argv[] )
 {
@@ -101,51 +101,56 @@ void Update()
 }
 
 void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& colour ){
-
   int V = vertices.size();
-
-  vector< vector<Pixel> > edges( V );
-
   vector<Pixel> projectedVertices( V );
+
   for( int i=0; i<V; i++ ){
     VertexShader( vertices[i], projectedVertices[i] );
   }
 
+  vector< vector<Pixel> > edges( V );
   for( int i=0; i<V; i++ ){
-    int j = (i+1)%V;
-    Pixel current = projectedVertices[i];
-    Pixel next = projectedVertices[j];
-    cout << "z1: " << current.zinv << "\n";
-    cout << "z2: " << next.zinv << "\n";
+    int j = ( i + 1 ) % V;
+    Pixel p_i1 = projectedVertices[i];
+    Pixel p_i2 = projectedVertices[j];
 
-    int delta_x = abs(current.x - next.x);
-    int delta_y = abs(current.y - next.y);
+    int delta_x = abs( p_i1.x - p_i2.x );
+    int delta_y = abs( p_i1.y - p_i2.y );
+    int h = (int) sqrt( ( pow( delta_x, 2 ), pow( delta_y, 2 ) ) );
+    int p_num = max( h, max( delta_x, delta_y ) ) + 1;
 
-    vector<Pixel> result( max( delta_x, delta_y ) );
+    vector<Pixel> result( p_num );
 
-    DrawLineBRS( screen, current, next, result );
+    Interpolate( p_i1, p_i2, result );
 
     edges[i] = result;
+  }
+
+  for( int i = 0; i<V; i++ ){
+    vector<Pixel> result = edges[i];
+    for( int j=0; j<result.size(); j++ ){
+      int x = result[j].x;
+      int y = result[j].y;
+      if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
+        PutPixelSDL( screen, x, y, colour );
+      }
+    }
   }
 
   int y1 = +numeric_limits<int>::max(); int y2 = -numeric_limits<int>::max();
   for( int i=0; i<V; i++ ){
     Pixel projected = projectedVertices[i];
-    int j = (i+1)%V;
 
-    if( projected.y < y1 ){
-      y1 = projected.y;
-    }
-    if( projected.y > y2 ){
-      y2 = projected.y;
-    }
+    if( projected.y < y1 ){ y1 = projected.y; }
+    if( projected.y > y2 ){ y2 = projected.y; }
   }
 
+
   int ROWS = y2 - y1 + 1;
-  int offset = min( y1, y2 );
 
   vector<Pixel> leftPixels( ROWS );
   vector<Pixel> rightPixels( ROWS );
+  // cout << "4." << "\n";
 
   for( int i=0; i<ROWS; ++i )
   {
@@ -154,11 +159,12 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
   }
 
   for( int i=0; i<V; i++ ){
-
     vector<Pixel> edge = edges[i];
+
     for( int j=0; j<edge.size(); j++ ){
       int y = edge[j].y;
-      int index = y-offset;
+
+      int index = y - y1;
 
       if( edge[j].x < leftPixels[index].x ){
         leftPixels[index].x = edge[j].x;
@@ -169,24 +175,27 @@ void ComputePolygonRows( screen* screen, const vector<vec4>& vertices, vec3& col
         rightPixels[index].x = edge[j].x;
         rightPixels[index].y = edge[j].y;
         rightPixels[index].zinv = edge[j].zinv;
+        }
+
       }
     }
-  }
 
-  for( int i=0; i<ROWS; ++i )
-  {
-    Pixel left, right;
-    left = leftPixels[i];
-    right = rightPixels[i];
+    for( int i=0; i<ROWS; ++i )
+    {
+      Pixel left, right;
+      left = leftPixels[i];
+      right = rightPixels[i];
 
-    vector<Pixel> result( abs( right.x - left.x ) );
+      int pixels = right.x - left.x + 1;
+      vector<Pixel> line( pixels );
 
-    DrawLineBRS( screen, left, right, result );
+      Interpolate( left, right, line );
 
-    for( int j=0; j<result.size(); j++ ){
-      PixelShader( screen, result[j], colour);
+      for( int j=0; j<line.size(); j++ ){
+        PixelShader( screen, line[j], colour);
+      }
     }
-  }
+
 }
 
 void VertexShader( const vec4& v, Pixel& p ){
@@ -199,7 +208,7 @@ void VertexShader( const vec4& v, Pixel& p ){
     p.zinv = 0;
   }
 
-  p.d = v; 
+  p.d = v;
 
   p.x = x;  p.y = y;
 }
@@ -208,13 +217,46 @@ void PixelShader( screen* screen, const Pixel& p, vec3& c )
 {
   int x = p.x;
   int y = p.y;
-  cout << "pzinv: " << p.zinv << "\n";
-  cout << "depth: " << depthBuffer[y][x] << "\n";
+
   if( p.zinv > depthBuffer[y][x] )
   {
     if( (x < SCREEN_WIDTH && x > 0) && (y < SCREEN_HEIGHT && y > 0)){
       depthBuffer[y][x] = p.zinv;
       PutPixelSDL( screen, x, y, c );
+    }
+  }
+}
+
+void Interpolate( Pixel a, Pixel b, vector<Pixel>& result ){
+  float x, y, zinv;
+  int N = result.size();
+
+  if( N == 1 )
+  {
+    result[0].x = (int) ( b.x + a.x ) / (float) 2;
+    result[0].y = (int) ( b.y + a.y ) / (float) 2;
+    result[0].zinv = ( b.zinv + a.zinv ) / (float) 2;
+  }
+  else
+  {
+    x = ( b.x - a.x ) / ( float ) ( N - 1 );
+    y = ( b.y - a.y ) / ( float ) ( N - 1 );
+    zinv = ( b.zinv - a.zinv ) / ( float ) ( N - 1 );
+
+    for(int i=0; i<result.size(); i++){
+      int result_x = (a.x + (i*x));
+      int result_y = (a.y + (i*y));
+
+      if( result_y > max( a.y, b.y ) ){
+        result_y = max( a.y, b.y );
+      }
+      if( result_y < min( a.y, b.y ) ){
+        result_y = min( a.y, b.y );
+      }
+
+      result[i].x = result_x;
+      result[i].y = result_y;
+      result[i].zinv = a.zinv + (i*zinv);
     }
   }
 }
