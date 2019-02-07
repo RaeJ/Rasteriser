@@ -277,7 +277,7 @@ void Interpolate( Pixel a, Pixel b, vector<Pixel>& result ){
     x     = ( b.x - a.x ) / ( float ) ( N - 1 );
     y     = ( b.y - a.y ) / ( float ) ( N - 1 );
     zinv  = ( b.zinv - a.zinv ) / ( float ) ( N - 1 );
-    pos4d = ( b.pos4d + a.pos4d ) / (float) ( N - 1 );
+    pos4d = ( b.pos4d - a.pos4d ) / (float) ( N - 1 );
 
     for(int i=0; i<result.size(); i++){
       int result_x = (a.x + (i*x));
