@@ -244,7 +244,7 @@ void PixelShader( screen* screen, const Pixel& p )
 
 vec3 PixelIllumination( Pixel p )
 {
-  vec3 radius = glm::normalize( light_position - vec3( p.pos4d ) );
+  vec3 radius = light_position - vec3( p.pos4d );
   vec3 normal = glm::normalize( vec3( p.normal ) );
   float diffuse = glm::dot( radius, normal );
   vec3 power = light_power * diffuse;
@@ -355,9 +355,23 @@ void TransformationMatrix(glm::mat4& M){
     if( keystate[SDL_SCANCODE_D] ) {
       camera.x += 0.005;
     }
+    // Move the light
+    if( keystate[SDL_SCANCODE_I] ) {
+      light_position.z += 0.1;
+    }
+    if( keystate[SDL_SCANCODE_K] ) {
+      light_position.z -= 0.1;
+    }
+    if( keystate[SDL_SCANCODE_J] ) {
+      light_position.x -= 0.1;
+    }
+    if( keystate[SDL_SCANCODE_L] ) {
+      light_position.x += 0.1;
+    }
     // Reset state
     if( keystate[SDL_SCANCODE_R] ) {
       camera = vec4( 0, 0, -3.00, 1 );
       theta = vec3( 0.0, 0.0, 0.0 );
+      light_position = vec3(0,-0.5,-0.7);
     }
   }
