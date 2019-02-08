@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
+#include "Tessendorf.h"
 #include <stdint.h>
 
 using namespace std;
