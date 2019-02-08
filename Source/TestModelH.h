@@ -6,6 +6,11 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+float L = 555;			// Length of Cornell Box side.
+float ACTUAL_WIDTH = 2;
+float HALF_W = ACTUAL_WIDTH/2;
+vec4 SHIFT( HALF_W, HALF_W, HALF_W, HALF_W );
+
 // Used to describe a triangular surface:
 class Triangle
 {
@@ -57,8 +62,6 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 
 	// ---------------------------------------------------------------------------
 	// Room
-
-	float L = 555;			// Length of Cornell Box side.
 
 	vec4 A(L,0,0,1);
 	vec4 B(0,0,0,1);
@@ -162,13 +165,13 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 
 	for( size_t i=0; i<triangles.size(); ++i )
 	{
-		triangles[i].v0 *= 2/L;
-		triangles[i].v1 *= 2/L;
-		triangles[i].v2 *= 2/L;
+		triangles[i].v0 *= ACTUAL_WIDTH/L;
+		triangles[i].v1 *= ACTUAL_WIDTH/L;
+		triangles[i].v2 *= ACTUAL_WIDTH/L;
 
-		triangles[i].v0 -= vec4(1,1,1,1);
-		triangles[i].v1 -= vec4(1,1,1,1);
-		triangles[i].v2 -= vec4(1,1,1,1);
+		triangles[i].v0 -= SHIFT;
+		triangles[i].v1 -= SHIFT;
+		triangles[i].v2 -= SHIFT;
 
 		triangles[i].v0.x *= -1;
 		triangles[i].v1.x *= -1;

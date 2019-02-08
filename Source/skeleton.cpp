@@ -100,6 +100,7 @@ void Draw(screen* screen)
     }
 }
 
+
 /*Place updates of parameters here*/
 void Update()
 {
