@@ -48,7 +48,9 @@ vec3 PixelIllumination( Pixel p );
 
 int main( int argc, char* argv[] )
 {
+  CreateSurface( 4, 0.3 );
   LoadTestModel(triangles);
+  LoadGrid(triangles);
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
 
