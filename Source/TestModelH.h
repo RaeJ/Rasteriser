@@ -6,6 +6,8 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+#define PI 3.14159265
+
 float L = 555;			// Length of Cornell Box side.
 float ACTUAL_WIDTH = 2;
 float HALF_W = ACTUAL_WIDTH/2;
