@@ -20,7 +20,7 @@ glm::vec2 wind_dir( 0.85, 0.316 );
 // float max_wave = 0.2;
 float amplitude = HALF_W/5;
 float max_wave = ( glm::dot( wind_dir, wind_dir ) ) / gravity;
-float step = HALF_W/5;
+float step = HALF_W/10;
 
 double e_r = 0.5;
 double e_i = 0.3;
