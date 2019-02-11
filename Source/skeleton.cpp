@@ -46,6 +46,8 @@ void UserInput();
 void PixelShader( screen* screen, const Pixel& p );
 void Interpolate( Pixel a, Pixel b, vector<Pixel>& result );
 vec3 PixelIllumination( Pixel p );
+void DrawCornellBox( screen* screen, const mat4& t_matrix);
+void DrawTessendorfWaves( screen* screen, const mat4& t_matrix);
 
 int main( int argc, char* argv[] )
 {
@@ -80,57 +82,11 @@ void Draw(screen* screen)
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
   mat4 matrix;  TransformationMatrix(matrix);
-  vector<Vertex> vertices(3);
 
-  // for( uint32_t i=0; i<triangles.size(); ++i )
-  //   {
-  //     vec4 normal = triangles[i].normal;
-  //     vec3 colour = triangles[i].colour;
-  //
-  //     vertices[0].position    = matrix * triangles[i].v0;
-  //     vertices[0].normal      = normal;
-  //     vertices[0].reflectance = colour;
-  //
-  //     vertices[1].position    = matrix * triangles[i].v1;
-  //     vertices[1].normal      = normal;
-  //     vertices[1].reflectance = colour;
-  //
-  //     vertices[2].position    = matrix * triangles[i].v2;
-  //     vertices[2].normal      = normal;
-  //     vertices[2].reflectance = colour;
-  //
-  //     ComputePolygonRows( screen, vertices );
-  //   }
+  DrawCornellBox( screen, matrix );
 
-  int width = GRID.side_points;
-  for( int col=0; col<width; col++ ){
-    for( int row=0; row<width; row++ ){
-      int i = ( row * width ) + col;
-      if( ( i % width ) != ( width - 1 ) && ( row % width ) != ( width - 1 ) ){
+  DrawTessendorfWaves( screen, matrix );
 
-        for( int v=0; v<vertices.size(); v++ ){
-          vertices[v].reflectance = vec3(1,1,1);
-        }
-
-        vec4 l      = GRID.geometric_points[i];
-        vec4 r      = GRID.geometric_points[i + 1];
-        vec4 down_l = GRID.geometric_points[i + width];
-        vec4 down_r = GRID.geometric_points[i + width + 1];
-
-        vertices[0].position = matrix * l;
-        vertices[1].position = matrix * r;
-        vertices[2].position = matrix * down_l;
-
-        ComputePolygonRows( screen, vertices );
-
-        vertices[0].position = matrix * down_l;
-        vertices[1].position = matrix * down_r;
-        vertices[2].position = matrix * r;
-
-        ComputePolygonRows( screen, vertices );
-      }
-    }
-  }
 }
 
 void Update()
@@ -176,74 +132,139 @@ void ComputePolygonRows( screen* screen, const vector<Vertex>& vertices ){
     edges[i] = result;
   }
 
-  for( int i=0; i<edges.size(); i++ ){
+  // for( int i=0; i<edges.size(); i++ ){
+  //   vector<Pixel> edge = edges[i];
+  //   for( int j=0; j<edge.size(); j++ ){
+  //     PutPixelSDL( screen, edge[j].x, edge[j].y, vec3(1,1,1));
+  //   }
+  // }
+
+  int y1 = +numeric_limits<int>::max(); int y2 = -numeric_limits<int>::max();
+  for( int i=0; i<V; i++ ){
+    Pixel projected = projectedVertices[i];
+
+    if( projected.y < y1 ){ y1 = projected.y; }
+    if( projected.y > y2 ){ y2 = projected.y; }
+  }
+
+  int ROWS = y2 - y1 + 1;
+
+  vector<Pixel> leftPixels( ROWS );
+  vector<Pixel> rightPixels( ROWS );
+
+  for( int i=0; i<ROWS; ++i )
+  {
+    leftPixels[i].x  = +numeric_limits<int>::max();
+    rightPixels[i].x = -numeric_limits<int>::max();
+  }
+
+  for( int i=0; i<V; i++ ){
     vector<Pixel> edge = edges[i];
     for( int j=0; j<edge.size(); j++ ){
-      PutPixelSDL( screen, edge[j].x, edge[j].y, vec3(1,1,1));
+      int y = edge[j].y;
+
+      int index = y - y1;
+
+      if( edge[j].x < leftPixels[index].x ){
+        leftPixels[index].x             = edge[j].x;
+        leftPixels[index].y             = edge[j].y;
+        leftPixels[index].zinv          = edge[j].zinv;
+        leftPixels[index].reflectance   = edge[j].reflectance;
+        leftPixels[index].pos4d         = edge[j].pos4d;
+        leftPixels[index].normal        = edge[j].normal;
+      }
+      if( edge[j].x > rightPixels[index].x){
+        rightPixels[index].x            = edge[j].x;
+        rightPixels[index].y            = edge[j].y;
+        rightPixels[index].zinv         = edge[j].zinv;
+        rightPixels[index].reflectance  = edge[j].reflectance;
+        rightPixels[index].pos4d        = edge[j].pos4d;
+        rightPixels[index].normal       = edge[j].normal;
+      }
+
     }
   }
 
-  // int y1 = +numeric_limits<int>::max(); int y2 = -numeric_limits<int>::max();
-  // for( int i=0; i<V; i++ ){
-  //   Pixel projected = projectedVertices[i];
-  //
-  //   if( projected.y < y1 ){ y1 = projected.y; }
-  //   if( projected.y > y2 ){ y2 = projected.y; }
-  // }
-  //
-  // int ROWS = y2 - y1 + 1;
-  //
-  // vector<Pixel> leftPixels( ROWS );
-  // vector<Pixel> rightPixels( ROWS );
-  //
-  // for( int i=0; i<ROWS; ++i )
-  // {
-  //   leftPixels[i].x  = +numeric_limits<int>::max();
-  //   rightPixels[i].x = -numeric_limits<int>::max();
-  // }
-  //
-  // for( int i=0; i<V; i++ ){
-  //   vector<Pixel> edge = edges[i];
-  //   for( int j=0; j<edge.size(); j++ ){
-  //     int y = edge[j].y;
-  //
-  //     int index = y - y1;
-  //
-  //     if( edge[j].x < leftPixels[index].x ){
-  //       leftPixels[index].x             = edge[j].x;
-  //       leftPixels[index].y             = edge[j].y;
-  //       leftPixels[index].zinv          = edge[j].zinv;
-  //       leftPixels[index].reflectance   = edge[j].reflectance;
-  //       leftPixels[index].pos4d         = edge[j].pos4d;
-  //       leftPixels[index].normal        = edge[j].normal;
-  //     }
-  //     if( edge[j].x > rightPixels[index].x){
-  //       rightPixels[index].x            = edge[j].x;
-  //       rightPixels[index].y            = edge[j].y;
-  //       rightPixels[index].zinv         = edge[j].zinv;
-  //       rightPixels[index].reflectance  = edge[j].reflectance;
-  //       rightPixels[index].pos4d        = edge[j].pos4d;
-  //       rightPixels[index].normal       = edge[j].normal;
-  //     }
-  //
-  //   }
-  // }
-  //
-  // for( int i=0; i<ROWS; ++i )
-  // {
-  //   Pixel left, right;
-  //   left = leftPixels[i];
-  //   right = rightPixels[i];
-  //
-  //   int pixels = right.x - left.x + 1;
-  //   vector<Pixel> line( pixels );
-  //
-  //   Interpolate( left, right, line );
-  //
-  //   for( int j=0; j<line.size(); j++ ){
-  //     PixelShader( screen, line[j] );
-  //   }
-  // }
+  for( int i=0; i<ROWS; ++i )
+  {
+    Pixel left, right;
+    left = leftPixels[i];
+    right = rightPixels[i];
+
+    int pixels = right.x - left.x + 1;
+    vector<Pixel> line( pixels );
+
+    Interpolate( left, right, line );
+
+    for( int j=0; j<line.size(); j++ ){
+      PixelShader( screen, line[j] );
+    }
+  }
+}
+
+void DrawCornellBox( screen* screen, const mat4& matrix){
+  vector<Vertex> vertices(3);
+
+  for( uint32_t i=0; i<triangles.size(); ++i )
+    {
+      vec4 normal = triangles[i].normal;
+      vec3 colour = triangles[i].colour;
+
+      vertices[0].position    = matrix * triangles[i].v0;
+      vertices[0].normal      = normal;
+      vertices[0].reflectance = colour;
+
+      vertices[1].position    = matrix * triangles[i].v1;
+      vertices[1].normal      = normal;
+      vertices[1].reflectance = colour;
+
+      vertices[2].position    = matrix * triangles[i].v2;
+      vertices[2].normal      = normal;
+      vertices[2].reflectance = colour;
+
+      ComputePolygonRows( screen, vertices );
+    }
+}
+
+void DrawTessendorfWaves( screen* screen, const mat4& matrix){
+  vector<Vertex> vertices(3);
+
+  int width = GRID.side_points;
+  for( int col=0; col<width; col++ ){
+    for( int row=0; row<width; row++ ){
+      int i = ( row * width ) + col;
+      if( ( i % width ) != ( width - 1 ) && ( row % width ) != ( width - 1 ) ){
+        vec4 l      = GRID.geometric_points[i];
+        vec4 r      = GRID.geometric_points[i + 1];
+        vec4 down_l = GRID.geometric_points[i + width];
+        vec4 down_r = GRID.geometric_points[i + width + 1];
+
+        Triangle A = Triangle( down_r, down_l, r, vec3(0.25,0.34,0.96) );
+        for( int v=0; v<vertices.size(); v++ ){
+          vertices[v].reflectance = A.colour;
+          vertices[v].normal      = A.normal;
+        }
+
+        vertices[0].position = matrix * A.v0;
+        vertices[1].position = matrix * A.v1;
+        vertices[2].position = matrix * A.v2;
+
+        ComputePolygonRows( screen, vertices );
+
+        A = Triangle( down_l, l, r, vec3(0.25,0.34,0.96) );
+        for( int v=0; v<vertices.size(); v++ ){
+          vertices[v].reflectance = A.colour;
+          vertices[v].normal      = A.normal;
+        }
+
+        vertices[0].position = matrix * A.v0;
+        vertices[1].position = matrix * A.v1;
+        vertices[2].position = matrix * A.v2;
+
+        ComputePolygonRows( screen, vertices );
+      }
+    }
+  }
 }
 
 void VertexShader( const Vertex& vertex, Pixel& p ){
