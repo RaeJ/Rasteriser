@@ -83,7 +83,7 @@ void Draw(screen* screen)
 
   mat4 matrix;  TransformationMatrix(matrix);
 
-  DrawCornellBox( screen, matrix );
+  // DrawCornellBox( screen, matrix );
 
   DrawTessendorfWaves( screen, matrix );
 
