@@ -16,14 +16,14 @@ Grid GRID;
 
 // Water Stuff
 float gravity = 9.8;
-glm::vec2 wind_dir( 0.85, 0.316 );
-// float max_wave = 0.2;
+glm::vec2 wind_dir( 0.316, 0.316 );
+float max_wave = 0.2;
 float amplitude = HALF_W/5;
-float max_wave = ( glm::dot( wind_dir, wind_dir ) ) / gravity;
-float step = HALF_W/10;
+// float max_wave = ( glm::dot( wind_dir, wind_dir ) ) / gravity;
+float step = HALF_W/5;
 
 double e_r = 0.5;
-double e_i = 0.3;
+double e_i = 0.5;
 
 void CreateSurface( int triangle_number, float height );
 void LoadGrid( std::vector<Triangle>& triangles );
@@ -78,9 +78,9 @@ void LoadGrid( std::vector<Triangle>& triangles )
 
 void UpdateHeight( double time )
 {
-  if( fmod( time, 2.0 ) == 0 ){
-    e_r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-  }
+  // if( fmod( time, 2.0 ) == 0 ){
+  //   e_r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+  // }
 
   float multiplier = ( 1 / sqrt( 2 ) ) ;
 

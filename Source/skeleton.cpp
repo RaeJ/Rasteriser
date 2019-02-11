@@ -51,7 +51,7 @@ void DrawTessendorfWaves( screen* screen, const mat4& t_matrix);
 
 int main( int argc, char* argv[] )
 {
-  CreateSurface( 16, 0.0 );
+  CreateSurface( 20, -0.6 );
   LoadTestModel(triangles);
   current_time = 0;
 
@@ -99,7 +99,7 @@ void Update()
   //
   // std::cout << "Render time: " << dt << " ms." << std::endl;
 
-  current_time += 0.002;
+  current_time += 0.004;
 
   UpdateHeight( current_time );
 
