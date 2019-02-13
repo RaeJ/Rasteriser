@@ -21,6 +21,8 @@ float max_wave = 0.2;
 float amplitude = HALF_W/5;
 // float max_wave = ( glm::dot( wind_dir, wind_dir ) ) / gravity;
 float step = HALF_W/5;
+// int N = 64;
+// int M = 64;
 
 double e_r = 0.5;
 double e_i = 0.5;
@@ -88,24 +90,31 @@ void UpdateHeight( double time )
     glm::vec2 x_0( GRID.geometric_points[i].x, GRID.geometric_points[i].z );
     std::complex<float> result = 0;
 
-    for( float n = -HALF_W/2; n < HALF_W/2; n = n + step ){
-      for( float m = -HALF_W/2; m < HALF_W/2; m = m + step ){
-        float k_x = ( 2 * PI * n ) / max_wave;
-        float k_z = ( 2 * PI * m ) / max_wave;
+    for( float n = 0; n < HALF_W; n = n + step ){
+      for( float m = 0; m < HALF_W; m = m + step ){
+        float k_x = ( 2 * PI * ( n - HALF_W/2 ) ) / max_wave;
+        float k_z = ( 2 * PI * ( m - HALF_W/2 ) ) / max_wave;
 
         glm::vec2 k( k_x, k_z );
-        float w = sqrt( gravity * sqrt( glm::dot( k, k ) ) );
-        float k4 = pow( k_x, 4 ) + pow( k_z, 4 );
+        float nk = glm::length( k );
+        float w = sqrt( gravity * nk );
+
+        float k4 = pow( nk, 4 );
 
         std::complex<float> eikx0( cos( glm::dot( k, x_0 ) ), sin( glm::dot( k, x_0 ) ) );
 
         std::complex<float> neg_exp( cos( -time * w ), sin( -time * w ) );
         std::complex<float> pos_exp( cos( time * w ), sin( time * w ) );
 
-        float phil_pos = amplitude * ( exp( -1 / ( glm::dot( k, k ) ) ) / k4 )
-                                   * pow( abs( glm::dot( k, wind_dir ) ), 2 );
-        float phil_neg = amplitude * ( exp( -1 / ( glm::dot( k, k ) ) ) / k4 )
-                                   * pow( abs( glm::dot( -k, wind_dir ) ), 2 );
+        float phil_pos = 0; float phil_neg = 0;
+
+        if( k4 != 0 ){
+          phil_pos = amplitude * ( exp( -1 / ( glm::dot( k, k ) ) ) / k4 )
+                               * pow( abs( glm::dot( k, wind_dir ) ), 2 );
+          phil_neg = amplitude * ( exp( -1 / ( glm::dot( k, k ) ) ) / k4 )
+                               * pow( abs( glm::dot( -k, wind_dir ) ), 2 );
+        }
+
 
         std::complex<float> sqr_p( sqrt( phil_pos ) );
         std::complex<float> sqr_n( sqrt( phil_neg ) );
