@@ -32,6 +32,7 @@ vec3 light_power = 11.1f*vec3( 1, 1, 1 );
 vec3 indirect_light = 0.5f*vec3( 1, 1, 1 );
 
 double current_time;
+bool pause = false;
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -51,7 +52,7 @@ void DrawTessendorfWaves( screen* screen, const mat4& t_matrix);
 
 int main( int argc, char* argv[] )
 {
-  CreateSurface( 20, -0.6 );
+  CreateSurface( 25, -0.6 );
   LoadTestModel(triangles);
   current_time = 0;
 
@@ -99,9 +100,10 @@ void Update()
   //
   // std::cout << "Render time: " << dt << " ms." << std::endl;
 
-  current_time += 0.004;
-
-  UpdateHeight( current_time );
+  if ( !pause ){
+    current_time += 0.004;
+    UpdateHeight( current_time );
+  }
 
   UserInput();
 }
@@ -437,5 +439,9 @@ void TransformationMatrix(glm::mat4& M){
       camera = vec4( 0, 0, -3.00, 1 );
       theta = vec3( 0.0, 0.0, 0.0 );
       light_position = vec3(0,-0.5,-0.7);
+    }
+    // Pause motion
+    if( keystate[SDL_SCANCODE_P] ){
+      pause = !pause;
     }
   }
